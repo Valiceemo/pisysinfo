@@ -15,11 +15,11 @@
 	
 	$current_time = exec("date +'%d %b %Y<br />%T %Z'");
 	$frequency = NumberWithCommas(exec("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq") / 1000);
-	$processor = str_replace("-compatible processor", "", explode(": ", exec("cat /proc/cpuinfo | grep Processor"))[1]);
+	$processor = str_replace("-compatible processor", "", explode(": ", exec("cat /proc/cpuinfo | grep processor"))[1]);
 	$cpu_temperature = round(exec("cat /sys/class/thermal/thermal_zone0/temp ") / 1000, 1);
 	//$RX = exec("ifconfig eth0 | grep 'RX bytes'| cut -d: -f2 | cut -d' ' -f1");
 	//$TX = exec("ifconfig eth0 | grep 'TX bytes'| cut -d: -f3 | cut -d' ' -f1");
-	list($system, $host, $kernel) = split(" ", exec("uname -a"), 4);
+	list($system, $host, $kernel) = explode(" ", exec("uname -a"), 4);
 	
 	//Uptime
 	$uptime_array = explode(" ", exec("cat /proc/uptime"));
@@ -38,37 +38,13 @@
 	endif;
 	
 	//CPU Usage
-	$output1 = null;
-	$output2 = null;
-	//First sample
-	exec("cat /proc/stat", $output1);
-	//Sleep before second sample
-	sleep(1);
-	//Second sample
-	exec("cat /proc/stat", $output2);
-	$cpuload = 0;
-	for ($i=0; $i < 1; $i++)
-	{
-		//First row
-		$cpu_stat_1 = explode(" ", $output1[$i+1]);
-		$cpu_stat_2 = explode(" ", $output2[$i+1]);
-		//Init arrays
-		$info1 = array("user"=>$cpu_stat_1[1], "nice"=>$cpu_stat_1[2], "system"=>$cpu_stat_1[3], "idle"=>$cpu_stat_1[4]);
-		$info2 = array("user"=>$cpu_stat_2[1], "nice"=>$cpu_stat_2[2], "system"=>$cpu_stat_2[3], "idle"=>$cpu_stat_2[4]);
-		$idlesum = $info2["idle"] - $info1["idle"] + $info2["system"] - $info1["system"];
-		$sum1 = array_sum($info1);
-		$sum2 = array_sum($info2);
-		//Calculate the cpu usage as a percent
-		$load = (1 - ($idlesum / ($sum2 - $sum1))) * 100;
-		$cpuload += $load;
-	}
-	$cpuload = round($cpuload, 1); //One decimal place
-	
+	exec("cat /proc/loadavg |cut -d \" \" -f 1-3", $cpuload);
+	$cpuload = implode(" ",$cpuload);
 	//Memory Utilisation
 	$meminfo = file("/proc/meminfo");
 	for ($i = 0; $i < count($meminfo); $i++)
 	{
-		list($item, $data) = split(":", $meminfo[$i], 2);
+		list($item, $data) = explode(":", $meminfo[$i], 2);
 		$item = trim(chop($item));
 		$data = intval(preg_replace("/[^0-9]/", "", trim(chop($data)))); //Remove non numeric characters
 		switch($item)
@@ -84,12 +60,14 @@
 	}
 	$used_mem = $total_mem - $free_mem;
 	$used_swap = $total_swap - $free_swap;
+        $kernapp_mem = $used_mem - $buffer_mem - $cache_mem;
 	$percent_free = round(($free_mem / $total_mem) * 100);
 	$percent_used = round(($used_mem / $total_mem) * 100);
 	$percent_swap = round((($total_swap - $free_swap ) / $total_swap) * 100);
 	$percent_swap_free = round(($free_swap / $total_swap) * 100);
 	$percent_buff = round(($buffer_mem / $total_mem) * 100);
 	$percent_cach = round(($cache_mem / $total_mem) * 100);
+	$percent_kernapp = round(($kernapp_mem / $total_mem) * 100);
 	$used_mem = NumberWithCommas($used_mem);
 	$used_swap = NumberWithCommas($used_swap);
 	$total_mem = NumberWithCommas($total_mem);
@@ -98,13 +76,14 @@
 	$free_swap = NumberWithCommas($free_swap);
 	$buffer_mem = NumberWithCommas($buffer_mem);
 	$cache_mem = NumberWithCommas($cache_mem);
+	$kernapp_mem = NumberWithCommas($kernapp_mem);
 
 	//Disk space check
-	exec("df -T -l -BM -x tmpfs -x devtmpfs -x rootfs", $diskfree);
+	exec("df -T -l -BM -x devtmpfs -x rootfs", $diskfree);
 	$count = 1;
 	while ($count < sizeof($diskfree))
 	{
-		list($drive[$count], $typex[$count], $size[$count], $used[$count], $avail[$count], $percent[$count], $mount[$count]) = split(" +", $diskfree[$count]);
+		list($drive[$count], $typex[$count], $size[$count], $used[$count], $avail[$count], $percent[$count], $mount[$count]) = preg_split("/[\s,]+/", $diskfree[$count]);
 		$percent_part[$count] = str_replace( "%", "", $percent[$count]);
 		$count++;
 	}
@@ -151,7 +130,9 @@
 			}
 			table
 			{
-				width: 320px; border-spacing:0;
+				margin-left: auto;
+				margin-right: auto;
+				width: 350px; border-spacing:0;
 				border-collapse:collapse;
 			}
 			html,body,.darkbackground
@@ -164,7 +145,7 @@
 			}
 			td.column1
 			{
-				width:60px;
+				width:90px;
 			}
 			td.column3
 			{
@@ -174,7 +155,7 @@
 			{
 				width:30px;
 			}
-			div#bar1, div#bar2, div#bar3, div#bar4, div#bar5, div#bar6
+			div#bar1, div#bar2, div#bar3, div#bar4, div#bar5, div#bar6, div#bar7
 			{
 				height:12px;
 				width:0px;
@@ -196,6 +177,7 @@
 			div#bar4 { background-color:#87AFD7; }
 			div#bar5 { background-color:#D7AFD7; }
 			div#bar6 { background-color:#AFD7D7; }
+			div#bar7 { background-color:#AFD7D7; }
 		</style>
 		<script type="text/javascript">
 			function updateText(objectId, text)
@@ -214,12 +196,14 @@
 				echo "\n\t\t\t\tupdateText(\"kernel\",\"$system\" + \" \" + \"$kernel\");";
 				echo "\n\t\t\t\tupdateText(\"processor\",\"$processor\");";
 				echo "\n\t\t\t\tupdateText(\"freq\",\"$frequency\" + \"MHz\");";
-				echo "\n\t\t\t\tupdateText(\"cpuload\",\"$cpuload%\");";
+				echo "\n\t\t\t\tupdateText(\"cpuload\",\"$cpuload\");";
 				echo "\n\t\t\t\tupdateText(\"cpu_temperature\",\"$cpu_temperature\" + \"°C\");";
 				echo "\n\t\t\t\tupdateText(\"uptime\",\"$uptime\");";
 
 				echo "\n\t\t\t\tupdateText(\"total_mem\",\"$total_mem\" + \" kB\");";
 				echo "\n\t\t\t\tupdateText(\"used_mem\",\"$used_mem\" + \" kB\");";
+				echo "\n\t\t\t\tupdateText(\"kernapp_mem\",\"$kernapp_mem\" + \" kB\");";
+				echo "\n\t\t\t\tupdateText(\"percent_kernapp\",\"$percent_kernapp%\");";
 				echo "\n\t\t\t\tupdateText(\"percent_used\",\"$percent_used%\");";
 				echo "\n\t\t\t\tupdateText(\"free_mem\",\"$free_mem\" + \" kB\");";
 				echo "\n\t\t\t\tupdateText(\"percent_free\",\"$percent_free%\");";
@@ -236,6 +220,7 @@
 ?>
 				document.getElementById("bar1").style.width = "<?php echo $percent_used; ?>px";
 				document.getElementById("bar2").style.width = "<?php echo $percent_free; ?>px";
+				document.getElementById("bar7").style.width = "<?php echo $percent_kernapp; ?>px";
 				document.getElementById("bar3").style.width = "<?php echo $percent_buff; ?>px";
 				document.getElementById("bar4").style.width = "<?php echo $percent_cach; ?>px";
 				document.getElementById("bar5").style.width = "<?php echo $percent_swap; ?>px";
@@ -294,10 +279,10 @@
 				<td class="right column4" id="percent_used"></td>
 			</tr>
 			<tr>
-				<td>Free</td>
-				<td class="right" id="free_mem"></td>
-				<td><div id="bar2"></div></td>
-				<td class="right" id="percent_free"></td>
+				<td>Kernel + App</td>
+				<td class="right" id="kernapp_mem"></td>
+				<td><div id="bar7"></div></td>
+				<td class="right" id="percent_kernapp"></td>
 			</tr>
 			<tr>
 				<td>Buffered</td>
@@ -310,6 +295,12 @@
 				<td class="right" id="cache_mem"></td>
 				<td><div id="bar4"></div></td>
 				<td class="right" id="percent_cach"></td>
+			</tr>
+			<tr>
+				<td>Free</td>
+				<td class="right" id="free_mem"></td>
+				<td><div id="bar2"></div></td>
+				<td class="right" id="percent_free"></td>
 			</tr>
 			<tr>
 				<td colspan="4" class="darkbackground">&nbsp;</td>
