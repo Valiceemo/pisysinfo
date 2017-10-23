@@ -92,8 +92,8 @@
 <html lang="en">
 	<head>
 		<title>SysInfo: <?php echo $host; ?></title>
-		<link rel="stylesheet" href="assets/css/style.css">
-		<link rel="icon" href="assets/img/favicon.ico">
+		<link rel="stylesheet" href="assets/style.css">
+		<link rel="icon" href="assets/favicon.ico">
 		<meta name="Viewport" content="width=device-width, user-scalable=no">		
 		<meta http-equiv="refresh" content="60" />
 		
