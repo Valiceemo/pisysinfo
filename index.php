@@ -94,6 +94,7 @@
 <html lang="en">
 	<head>
 		<title>SysInfo: <?php echo $host; ?></title>
+		
 		<meta http-equiv="refresh" content="60" />
 		<style type="text/css">
 			a
@@ -199,7 +200,7 @@
 				echo "\n\t\t\t\tupdateText(\"processor\",\"$processor\");";
 				echo "\n\t\t\t\tupdateText(\"freq\",\"$frequency\" + \"MHz\");";
 				echo "\n\t\t\t\tupdateText(\"cpuload\",\"$cpuload\");";
-				echo "\n\t\t\t\tupdateText(\"cpu_temperature\",\"$cpu_temperature\" + \"°C\");";
+				echo "\n\t\t\t\tupdateText(\"cpu_temperature\",\"$cpu_temperature\" + \"Â°C\");";
 				echo "\n\t\t\t\tupdateText(\"uptime\",\"$uptime\");";
 
 				echo "\n\t\t\t\tupdateText(\"total_mem\",\"$total_mem\" + \" kB\");";
